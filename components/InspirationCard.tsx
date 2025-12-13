@@ -25,13 +25,13 @@ const InspirationCard: React.FC<InspirationCardProps> = ({ person, rank, isNew, 
 
   return (
     <div className="flex flex-col relative group/card">
-      
+
       {/* Animated Gold Border Background for Rank 1 */}
       {isRank1 && (
-         <div className="absolute -inset-[3px] bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-200 rounded-xl blur-[1px] animate-gradient-border pointer-events-none opacity-100" />
+        <div className="absolute -inset-[3px] bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-200 rounded-xl blur-[1px] animate-gradient-border pointer-events-none opacity-100" />
       )}
 
-      <div 
+      <div
         onClick={() => setIsExpanded(!isExpanded)}
         className={`relative z-10 flex items-center gap-4 bg-white border p-3 rounded-lg hover:shadow-md transition-all duration-200 cursor-pointer 
           ${isNew ? 'bg-blue-50/50 border-blue-200' : 'border-slate-200'} 
@@ -40,18 +40,17 @@ const InspirationCard: React.FC<InspirationCardProps> = ({ person, rank, isNew, 
         `}
       >
         {/* Rank Indicator */}
-        <div className={`w-8 h-8 flex items-center justify-center rounded font-mono text-sm font-bold flex-shrink-0 relative overflow-hidden ${
-          rank === 1 ? 'bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200' :
-          rank === 2 ? 'bg-slate-100 text-slate-700' :
-          rank === 3 ? 'bg-orange-100 text-orange-700' :
-          'text-slate-400 bg-slate-50'
-        }`}>
+        <div className={`w-8 h-8 flex items-center justify-center rounded font-mono text-sm font-bold flex-shrink-0 relative overflow-hidden ${rank === 1 ? 'bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200' :
+            rank === 2 ? 'bg-slate-100 text-slate-700' :
+              rank === 3 ? 'bg-orange-100 text-orange-700' :
+                'text-slate-400 bg-slate-50'
+          }`}>
           {rank === 1 ? (
             <>
-               <span className="absolute inset-0 flex items-center justify-center rank-number-anim">1</span>
-               <div className="absolute inset-0 flex items-center justify-center rank-crown-anim">
-                  <Crown size={16} className="fill-yellow-400 text-yellow-700" strokeWidth={2.5} />
-               </div>
+              <span className="absolute inset-0 flex items-center justify-center rank-number-anim">1</span>
+              <div className="absolute inset-0 flex items-center justify-center rank-crown-anim">
+                <Crown size={16} className="fill-yellow-400 text-yellow-700" strokeWidth={2.5} />
+              </div>
             </>
           ) : (
             rank
@@ -59,11 +58,11 @@ const InspirationCard: React.FC<InspirationCardProps> = ({ person, rank, isNew, 
         </div>
 
         {/* Avatar */}
-        <Avatar 
-          handle={person.handle} 
-          name={person.name} 
-          size={isTop3 ? 'md' : 'sm'} 
-          className={isTop3 ? 'ring-2 ring-offset-2 ring-slate-100' : ''} 
+        <Avatar
+          handle={person.handle}
+          name={person.name}
+          size={isTop3 ? 'md' : 'sm'}
+          className={isTop3 ? 'ring-2 ring-offset-2 ring-slate-100' : ''}
         />
 
         {/* Main Info */}
@@ -76,11 +75,11 @@ const InspirationCard: React.FC<InspirationCardProps> = ({ person, rank, isNew, 
               <TrendingUp className="w-3 h-3 text-green-500 flex-shrink-0" />
             )}
           </div>
-          
+
           <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
-            <a 
+            <a
               href={`https://x.com/${person.handle}`}
-              target="_blank" 
+              target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-1 group/link hover:text-blue-500 hover:underline transition-colors z-20"
@@ -100,25 +99,30 @@ const InspirationCard: React.FC<InspirationCardProps> = ({ person, rank, isNew, 
         {/* Stats */}
         <div className="text-right flex-shrink-0 pl-2 border-l border-slate-100">
           <div className="font-mono font-bold text-slate-900 text-sm">
-            {(person.voteCount / 1000).toFixed(1)}k
+            {person.voteCount >= 1000000
+              ? `${(person.voteCount / 1000000).toFixed(1)}M`
+              : person.voteCount >= 1000
+                ? `${(person.voteCount / 1000).toFixed(1)}k`
+                : person.voteCount
+            }
           </div>
           <div className="text-[10px] text-slate-400 font-medium">votes</div>
         </div>
 
         {/* Dropdown Indicator */}
         <div className={`absolute -right-1 -top-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-           <div className="bg-slate-100 text-slate-400 rounded-full p-0.5 hidden group-hover:block">
-              <ChevronDown size={12} />
-           </div>
+          <div className="bg-slate-100 text-slate-400 rounded-full p-0.5 hidden group-hover:block">
+            <ChevronDown size={12} />
+          </div>
         </div>
       </div>
 
       {/* Expanded Action Area */}
       {isExpanded && (
         <div className="relative z-10 bg-slate-50 border border-t-0 border-slate-200 rounded-b-lg p-2 flex justify-between items-center animate-in slide-in-from-top-2">
-          
+
           {/* Vote Button */}
-          <button 
+          <button
             onClick={(e) => {
               e.stopPropagation();
               onVote(person);
@@ -130,7 +134,7 @@ const InspirationCard: React.FC<InspirationCardProps> = ({ person, rank, isNew, 
           </button>
 
           {/* Share Button */}
-          <button 
+          <button
             onClick={(e) => {
               e.stopPropagation();
               onShare(person);

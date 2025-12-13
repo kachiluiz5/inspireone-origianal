@@ -16,6 +16,13 @@ const App: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Vote Tracking
+    const [votedHandles, setVotedHandles] = useState<string[]>(() => {
+        const saved = localStorage.getItem('inspire_voted_handles');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [duplicateVoteError, setDuplicateVoteError] = useState<string | null>(null);
+
     // UI State
     const [recentNomination, setRecentNomination] = useState<Person | null>(null);
     const [showAttribution, setShowAttribution] = useState(false);
@@ -70,9 +77,17 @@ const App: React.FC = () => {
     }, []);
 
     // Handle Voting / Adding
-    const handleUserInspire = async (newPerson: Omit<Person, 'id' | 'voteCount' | 'lastTrend'>) => {
+    const handleUserInspire = async (newPerson: Omit<Person, 'id' | 'voteCount' | 'lastTrend'>, skipLoading = false) => {
 
-        // 1. Optimistic UI Update (Instant feedback)
+        // 1. Check for duplicate vote
+        const normalizedHandle = newPerson.handle.toLowerCase();
+        if (votedHandles.includes(normalizedHandle)) {
+            setDuplicateVoteError(`You've already voted for ${newPerson.name}!`);
+            setTimeout(() => setDuplicateVoteError(null), 4000);
+            return;
+        }
+
+        // 2. Optimistic UI Update (Instant feedback)
         const optimisticPerson: Person = {
             ...newPerson,
             id: 'temp-' + Date.now(),
@@ -80,12 +95,14 @@ const App: React.FC = () => {
             lastTrend: 'up'
         };
 
-        // Show Success Modal immediately
-        setVoteSuccessPerson(optimisticPerson);
+        // Show Success Modal immediately (only if not from card)
+        if (!skipLoading) {
+            setVoteSuccessPerson(optimisticPerson);
+        }
         setRecentNomination(optimisticPerson);
         setTimeout(() => setRecentNomination(null), 4000);
 
-        // 2. Submit vote to database
+        // 3. Submit vote to database
         try {
             const { error: rpcError } = await supabase.rpc('vote_for_person', {
                 p_handle: newPerson.handle,
@@ -97,6 +114,11 @@ const App: React.FC = () => {
                 console.error("Voting error:", rpcError.message || rpcError);
                 setError('Failed to record vote. Please try again.');
             } else {
+                // Track this vote
+                const updatedVotes = [...votedHandles, normalizedHandle];
+                setVotedHandles(updatedVotes);
+                localStorage.setItem('inspire_voted_handles', JSON.stringify(updatedVotes));
+
                 // Refetch to get updated leaderboard
                 await fetchLeaderboard();
             }
@@ -344,10 +366,15 @@ const App: React.FC = () => {
 
             <main className="w-full max-w-4xl mx-auto pt-32 px-4">
 
-                <HeroInput onInspire={handleUserInspire} />
+                <HeroInput onInspire={handleUserInspire} votedHandles={votedHandles} />
 
-
-
+                {/* Duplicate Vote Error Toast */}
+                {duplicateVoteError && (
+                    <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-red-500 text-white px-6 py-3 rounded-full shadow-xl animate-in slide-in-from-top-4 font-bold text-sm flex items-center gap-2">
+                        <AlertCircle size={16} />
+                        {duplicateVoteError}
+                    </div>
+                )}
                 <div className="w-full">
                     <div className="flex items-center justify-between mb-6 px-1">
                         <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -401,7 +428,7 @@ const App: React.FC = () => {
                                                 person={p}
                                                 rank={i + 1}
                                                 onShare={setSharePerson}
-                                                onVote={(person) => handleUserInspire({ name: person.name, handle: person.handle, category: person.category })}
+                                                onVote={(person) => handleUserInspire({ name: person.name, handle: person.handle, category: person.category }, true)}
                                             />
                                         ))}
                                     </div>
@@ -422,7 +449,7 @@ const App: React.FC = () => {
                                                         person={p}
                                                         rank={i + 4}
                                                         onShare={setSharePerson}
-                                                        onVote={(person) => handleUserInspire({ name: person.name, handle: person.handle, category: person.category })}
+                                                        onVote={(person) => handleUserInspire({ name: person.name, handle: person.handle, category: person.category }, true)}
                                                     />
                                                 ))}
                                             </div>
@@ -589,7 +616,7 @@ const App: React.FC = () => {
                                             person={p}
                                             rank={i + 1}
                                             onShare={setSharePerson}
-                                            onVote={(person) => handleUserInspire({ name: person.name, handle: person.handle, category: person.category })}
+                                            onVote={(person) => handleUserInspire({ name: person.name, handle: person.handle, category: person.category }, true)}
                                         />
                                     ))}
                                 </div>

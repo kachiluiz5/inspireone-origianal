@@ -11,16 +11,25 @@ const modelName = 'gemini-2.5-flash';
  */
 export const normalizePerson = async (input: string): Promise<NormalizedPersonResponse | null> => {
   try {
-    // Optimized prompt: Shorter, allows non-famous people if handle is likely, faster processing.
+    // Enhanced prompt for better accuracy
     const response = await ai.models.generateContent({
       model: modelName,
-      contents: `User input: "${input}". 
-      Task: Identify the person.
-      1. If they are famous, return their name/handle/category.
-      2. If not famous but input looks like a name or handle, format it nicely.
-      3. Category should be 1 word (e.g. Creator, Tech, Art).
-      4. Handle should NOT include @.
-      Return JSON.`,
+      contents: `You are helping identify a person from user input: "${input}"
+
+Your task:
+1. Identify who this person is (could be famous, creator, entrepreneur, artist, athlete, etc.)
+2. If it's a misspelling, find the correct person
+3. If it's a handle (with or without @), identify the person
+4. Return their full name, Twitter/X handle (without @), and category
+
+Categories should be ONE word: Tech, Creator, Artist, Athlete, Business, Music, Science, etc.
+
+IMPORTANT: 
+- Be accurate - if unsure, make best guess based on context
+- Handle should be their actual Twitter/X username
+- If input is clearly a name/handle but not famous, format it nicely anyway
+
+Return JSON with: displayName, handle, category, isValid (true if confident match)`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -36,8 +45,8 @@ export const normalizePerson = async (input: string): Promise<NormalizedPersonRe
     });
 
     const data = JSON.parse(response.text || '{}');
-    
-    // Looser validation to allow local heroes/non-famous people
+
+    // Validation
     if (!data.displayName || !data.handle) return null;
 
     return {
@@ -48,10 +57,10 @@ export const normalizePerson = async (input: string): Promise<NormalizedPersonRe
 
   } catch (error) {
     console.error("Error normalizing person:", error);
-    // Strong fallback logic
+    // Fallback logic
     return {
       displayName: input,
-      handle: input.replace(/\s+/g, ''),
+      handle: input.replace(/\s+/g, '').replace('@', ''),
       category: 'Community'
     };
   }
@@ -59,6 +68,7 @@ export const normalizePerson = async (input: string): Promise<NormalizedPersonRe
 
 /**
  * Provides real-time autocomplete suggestions based on partial input.
+ * Returns 6 suggestions for better accuracy.
  */
 export const getSuggestions = async (query: string): Promise<Suggestion[]> => {
   if (query.length < 2) return [];
@@ -66,7 +76,16 @@ export const getSuggestions = async (query: string): Promise<Suggestion[]> => {
   try {
     const response = await ai.models.generateContent({
       model: modelName,
-      contents: `List 3 people (famous or creators) matching "${query}". JSON Array: [{name, handle}].`,
+      contents: `You are helping users find people to vote for. Given the partial input "${query}", suggest 6 real people (famous, creators, entrepreneurs, artists, athletes, etc.) whose names or handles match.
+
+IMPORTANT:
+- Prioritize exact matches and close matches first
+- Include both very famous and moderately famous people
+- If the input looks like a handle (starts with @), match handles
+- Return diverse results (different fields/categories)
+- Ensure handles are real Twitter/X handles (no @ symbol in response)
+
+Return JSON array: [{name: "Full Name", handle: "twitterhandle"}]`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -83,8 +102,10 @@ export const getSuggestions = async (query: string): Promise<Suggestion[]> => {
     });
 
     const suggestions = JSON.parse(response.text || '[]');
-    return suggestions;
+    // Return up to 6 suggestions
+    return suggestions.slice(0, 6);
   } catch (error) {
+    console.error("Error getting suggestions:", error);
     return [];
   }
 };

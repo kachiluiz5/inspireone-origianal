@@ -3,9 +3,11 @@ import { Search, Loader2, ArrowRight } from 'lucide-react';
 import { getSuggestions, normalizePerson } from '../services/geminiService';
 import { Suggestion, Person } from '../types';
 import Avatar from './Avatar';
+import ConfirmVoteModal from './ConfirmVoteModal';
 
 interface HeroInputProps {
-  onInspire: (person: Omit<Person, 'id' | 'voteCount' | 'lastTrend'>) => Promise<void>;
+  onInspire: (person: Omit<Person, 'id' | 'voteCount' | 'lastTrend'>, skipLoading?: boolean) => Promise<void>;
+  votedHandles: string[];
 }
 
 const PLACEHOLDERS = [
@@ -17,7 +19,7 @@ const PLACEHOLDERS = [
   "e.g. Sam Altman"
 ];
 
-const HeroInput: React.FC<HeroInputProps> = ({ onInspire }) => {
+const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -25,11 +27,14 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [fadePlaceholder, setFadePlaceholder] = useState(false);
-  
+
+  // Confirmation Modal State
+  const [pendingPerson, setPendingPerson] = useState<{ name: string; handle: string; category: string } | null>(null);
+
   // Bot Protection State
   const [honeypot, setHoneypot] = useState('');
   const [isRateLimited, setIsRateLimited] = useState(false);
-  
+
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Dynamic Placeholder Logic
@@ -77,8 +82,8 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire }) => {
   const checkBotProtection = (): boolean => {
     // 1. Honeypot Check (Hidden field that simple bots might fill)
     if (honeypot) {
-        console.warn("Bot detected: Honeypot filled");
-        return false;
+      console.warn("Bot detected: Honeypot filled");
+      return false;
     }
 
     // 2. Rate Limiting
@@ -87,47 +92,60 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire }) => {
     const COOLDOWN_MS = 10000; // 10 seconds cooldown between votes
 
     if (lastVoteTime && now - parseInt(lastVoteTime) < COOLDOWN_MS) {
-        setIsRateLimited(true);
-        setTimeout(() => setIsRateLimited(false), 3000); // Clear error after 3s
-        return false;
+      setIsRateLimited(true);
+      setTimeout(() => setIsRateLimited(false), 3000); // Clear error after 3s
+      return false;
     }
 
     localStorage.setItem('inspire_last_vote_time', now.toString());
     return true;
   };
 
-  const handleSubmit = async (manualName?: string, manualHandle?: string) => {
+  const handleSubmit = async (manualName?: string, manualHandle?: string, skipConfirmation = false) => {
     // Bot/Spam Check
     if (!checkBotProtection()) {
-        return; 
+      return;
     }
 
     const textToProcess = manualName || query;
     if (!textToProcess.trim()) return;
 
-    setIsSubmitting(true);
     setShowSuggestions(false);
 
     try {
+      let personData;
+
       if (manualHandle) {
         const normalized = await normalizePerson(manualName || query);
         if (normalized) {
-           await onInspire({
-             name: normalized.displayName,
-             handle: manualHandle,
-             category: normalized.category
-           });
+          personData = {
+            name: normalized.displayName,
+            handle: manualHandle,
+            category: normalized.category
+          };
         }
       } else {
         const normalized = await normalizePerson(textToProcess);
         if (normalized) {
-          await onInspire({
-              name: normalized.displayName,
-              handle: normalized.handle,
-              category: normalized.category
-          });
+          personData = {
+            name: normalized.displayName,
+            handle: normalized.handle,
+            category: normalized.category
+          };
         }
       }
+
+      if (!personData) return;
+
+      // Show confirmation modal for direct input (not suggestions)
+      if (!skipConfirmation && !manualHandle) {
+        setPendingPerson(personData);
+        return;
+      }
+
+      // Submit vote
+      setIsSubmitting(true);
+      await onInspire(personData, skipConfirmation); // Skip loading for suggestions
       setQuery('');
     } catch (e) {
       console.error("Submission failed", e);
@@ -136,18 +154,34 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire }) => {
     }
   };
 
+  const handleConfirmVote = async () => {
+    if (!pendingPerson) return;
+
+    setIsSubmitting(true);
+    setPendingPerson(null);
+
+    try {
+      await onInspire(pendingPerson, false); // Show loading for confirmed votes
+      setQuery('');
+    } catch (e) {
+      console.error("Vote failed", e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSuggestionClick = (s: Suggestion) => {
     setQuery(s.name);
-    handleSubmit(s.name, s.handle);
+    handleSubmit(s.name, s.handle, true); // Skip confirmation for suggestions
   };
 
   return (
     <div className="w-full max-w-xl mx-auto mb-12" ref={wrapperRef}>
-      
+
       {/* Hidden Honeypot Field for Bots */}
-      <input 
-        type="text" 
-        name="website_url_confirm" 
+      <input
+        type="text"
+        name="website_url_confirm"
         value={honeypot}
         onChange={(e) => setHoneypot(e.target.value)}
         style={{ position: 'absolute', opacity: 0, top: 0, left: 0, height: 0, width: 0, zIndex: -1 }}
@@ -158,18 +192,18 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire }) => {
       {/* Full Screen Loading Overlay */}
       {isSubmitting && (
         <div className="fixed inset-0 z-[100] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
-           <div className="relative mb-6">
-              <Loader2 className="w-16 h-16 text-slate-900 animate-spin relative z-10" />
-           </div>
-           <h3 className="text-2xl font-bold text-slate-900 mb-2">Searching the Universe...</h3>
-           <p className="text-slate-500 font-medium">Finding {query}...</p>
+          <div className="relative mb-6">
+            <Loader2 className="w-16 h-16 text-slate-900 animate-spin relative z-10" />
+          </div>
+          <h3 className="text-2xl font-bold text-slate-900 mb-2">Searching the Universe...</h3>
+          <p className="text-slate-500 font-medium">Finding {query}...</p>
         </div>
       )}
 
       {/* Rate Limit Warning */}
       {isRateLimited && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-red-500 text-white px-6 py-3 rounded-full shadow-xl animate-in slide-in-from-top-4 font-bold text-sm">
-           Whoa! Slow down, you're inspiring too fast. 🚀
+          Whoa! Slow down, you're inspiring too fast. 🚀
         </div>
       )}
 
@@ -184,33 +218,32 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire }) => {
 
       <div className="relative group z-30">
         <div className="relative flex items-center bg-white rounded-2xl border-2 border-slate-100 shadow-xl shadow-slate-200/50 focus-within:border-slate-900 focus-within:ring-4 focus-within:ring-slate-100 transition-all duration-300 transform focus-within:-translate-y-1">
-            <div className="pl-4 text-slate-400">
-               <Search className="w-6 h-6" />
-            </div>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onFocus={() => { if(suggestions.length > 0) setShowSuggestions(true); }}
-              placeholder={PLACEHOLDERS[placeholderIndex]}
-              className={`flex-1 p-4 text-lg text-slate-900 outline-none placeholder:text-slate-300 bg-transparent font-semibold transition-opacity duration-200 ${fadePlaceholder ? 'placeholder:opacity-0' : 'placeholder:opacity-100'}`}
-              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-              disabled={isSubmitting}
-            />
-            
-            <div className="pr-2">
-                <button
-                onClick={() => handleSubmit()}
-                disabled={isSubmitting || query.length < 2}
-                className={`px-6 py-3 rounded-xl text-sm font-bold text-white transition-all shadow-md ${
-                    isSubmitting || query.length < 2 
-                    ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none' 
-                    : 'bg-slate-900 hover:bg-slate-800 hover:scale-105 active:scale-95'
+          <div className="pl-4 text-slate-400">
+            <Search className="w-6 h-6" />
+          </div>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+            placeholder={PLACEHOLDERS[placeholderIndex]}
+            className={`flex-1 p-4 text-lg text-slate-900 outline-none placeholder:text-slate-300 bg-transparent font-semibold transition-opacity duration-200 ${fadePlaceholder ? 'placeholder:opacity-0' : 'placeholder:opacity-100'}`}
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            disabled={isSubmitting}
+          />
+
+          <div className="pr-2">
+            <button
+              onClick={() => handleSubmit()}
+              disabled={isSubmitting || query.length < 2}
+              className={`px-6 py-3 rounded-xl text-sm font-bold text-white transition-all shadow-md ${isSubmitting || query.length < 2
+                ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none'
+                : 'bg-slate-900 hover:bg-slate-800 hover:scale-105 active:scale-95'
                 }`}
-                >
-                Vote
-                </button>
-            </div>
+            >
+              Vote
+            </button>
+          </div>
         </div>
 
         {/* Real-time AI Suggestions */}
@@ -237,6 +270,15 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire }) => {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      {pendingPerson && (
+        <ConfirmVoteModal
+          person={pendingPerson}
+          onConfirm={handleConfirmVote}
+          onCancel={() => setPendingPerson(null)}
+        />
+      )}
     </div>
   );
 };
