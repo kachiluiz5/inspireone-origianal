@@ -15,10 +15,13 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 2000,
     },
     define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'import.meta.env.SUPABASE_URL': JSON.stringify(env.SUPABASE_URL),
-      'import.meta.env.SUPABASE_ANON_KEY': JSON.stringify(env.SUPABASE_ANON_KEY)
+      // Only expose public environment variables to client
+      // API keys should NEVER be exposed - they're only used server-side in /api routes
+      'import.meta.env.SUPABASE_URL': JSON.stringify(env.SUPABASE_URL || ''),
+      'import.meta.env.SUPABASE_ANON_KEY': JSON.stringify(env.SUPABASE_ANON_KEY || '')
+    },
+    css: {
+      postcss: './postcss.config.cjs',
     },
     resolve: {
       alias: {

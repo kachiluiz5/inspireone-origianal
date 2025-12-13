@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import HeroInput from './components/HeroInput';
 import InspirationCard from './components/InspirationCard';
 import SkeletonCard from './components/SkeletonCard';
@@ -65,8 +65,14 @@ const App: React.FC = () => {
                 setPeople(mappedPeople);
             }
         } catch (err: any) {
-            console.error('Failed to fetch leaderboard:', err.message);
-            setError(err.message || 'Unable to connect to database. Please check your configuration.');
+            console.error('Failed to fetch leaderboard:', err);
+            const errorMessage = err?.message || err?.toString() || 'Unknown error';
+            // Provide user-friendly error messages
+            if (errorMessage.includes('Failed to fetch') || errorMessage.includes('ERR_CONNECTION')) {
+                setError('Unable to connect to the database. Please check your internet connection and Supabase configuration.');
+            } else {
+                setError(errorMessage);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -285,13 +291,15 @@ const App: React.FC = () => {
         link.click();
     };
 
-    // Filter for Leaderboard Search
-    const filteredPeople = searchQuery.length > 1
-        ? people.filter(p =>
-            p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.handle.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        : [];
+    // Filter for Leaderboard Search - useMemo for performance and real-time updates
+    const filteredPeople = useMemo(() => {
+        if (searchQuery.length < 2) return [];
+        const query = searchQuery.toLowerCase().trim();
+        return people.filter(p =>
+            p.name.toLowerCase().includes(query) ||
+            p.handle.toLowerCase().includes(query)
+        );
+    }, [searchQuery, people]);
 
     const topTier = people.slice(0, 3);
     const midTier = people.slice(3);
