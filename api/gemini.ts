@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
 
 // Create server-side client using environment variable set in Vercel project settings
-const apiKey = process.env.API_KEY || process.env.GOOGLE_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.GOOGLE_API_KEY;
 
 if (!apiKey) {
   console.warn('API key for Google GenAI is not set. Set `API_KEY` in environment.');

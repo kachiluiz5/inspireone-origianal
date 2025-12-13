@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Loader2, ArrowRight } from 'lucide-react';
-// Use server API for AI suggestions/normalization (prevents exposing API keys in the browser)
 import { Suggestion, Person } from '../types';
 import Avatar from './Avatar';
 import ConfirmVoteModal from './ConfirmVoteModal';
+import { normalizePerson, getSuggestions } from '../services/geminiService';
 
 interface HeroInputProps {
   onInspire: (person: Omit<Person, 'id' | 'voteCount' | 'lastTrend'>, skipLoading?: boolean) => Promise<void>;
@@ -11,12 +11,12 @@ interface HeroInputProps {
 }
 
 const PLACEHOLDERS = [
-  "e.g. Elon Musk",
+  "e.g. @elonmusk",
   "e.g. @kachiMbaezue",
-  "e.g. Taylor Swift",
-  "e.g. Jensen Huang",
-  "e.g. MKBHD",
-  "e.g. Sam Altman"
+  "e.g. @taylorswift13",
+  "e.g. @JensenHuang",
+  "e.g. @mkbhd",
+  "e.g. @sama"
 ];
 
 const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
@@ -56,20 +56,10 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
       if (query.length >= 2) {
         setIsTyping(true);
         try {
-          const resp = await fetch('/api/gemini', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'suggest', query })
-          });
-          if (resp.ok) {
-            const results = await resp.json();
-            setSuggestions(Array.isArray(results) ? results : []);
-          } else {
-            // If API fails (404 in dev, 500 in prod), just show no suggestions
-            setSuggestions([]);
-          }
+          const results = await getSuggestions(query);
+          setSuggestions(Array.isArray(results) ? results : []);
         } catch (err) {
-          // API unavailable (expected in dev mode) - no suggestions
+          // API unavailable - no suggestions
           setSuggestions([]);
         }
         setIsTyping(false);
@@ -131,28 +121,19 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
       let personData;
 
       try {
-        const resp = await fetch('/api/gemini', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'normalize', query: textToProcess, manualName })
-        });
-
-        if (resp.ok) {
-          const normalized = await resp.json();
-          if (normalized && normalized.displayName && normalized.handle) {
-            personData = {
-              name: normalized.displayName,
-              handle: manualHandle || normalized.handle,
-              category: normalized.category
-            };
-          }
+        const normalized = await normalizePerson(textToProcess);
+        if (normalized && normalized.displayName && normalized.handle) {
+          personData = {
+            name: normalized.displayName,
+            handle: manualHandle || normalized.handle,
+            category: normalized.category
+          };
         }
       } catch (err) {
-        // API unavailable (expected in dev mode) - use fallback
-        // Don't log errors for 404s in development
+        // Service unavailable - will use fallback from normalizePerson
       }
 
-      // Fallback: If API fails, create person data from user input
+      // Fallback: If normalization fails, create person data from user input
       if (!personData) {
         const cleanInput = textToProcess.trim();
         // Extract handle if it starts with @
@@ -252,7 +233,7 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
           Who inspires you?
         </h1>
         <p className="text-slate-500 text-xs md:text-sm lg:text-base font-medium">
-          Enter the name or X username of who inspires you.
+          Enter the X username (e.g. @username) of who inspires you.
         </p>
       </div>
 

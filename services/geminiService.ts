@@ -1,9 +1,7 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { NormalizedPersonResponse, Suggestion } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-const modelName = 'gemini-2.5-flash';
+// This service now uses the server-side API route (/api/gemini) to keep API keys secure
+// The API key is NEVER exposed to the client-side code
 
 /**
  * Normalizes a user input into a standardized person object.
@@ -11,59 +9,44 @@ const modelName = 'gemini-2.5-flash';
  */
 export const normalizePerson = async (input: string): Promise<NormalizedPersonResponse | null> => {
   try {
-    // Enhanced prompt for better accuracy
-    const response = await ai.models.generateContent({
-      model: modelName,
-      contents: `You are helping identify a person from user input: "${input}"
-
-Your task:
-1. Identify who this person is (could be famous, creator, entrepreneur, artist, athlete, etc.)
-2. If it's a misspelling, find the correct person
-3. If it's a handle (with or without @), identify the person
-4. Return their full name, Twitter/X handle (without @), and category
-
-Categories should be ONE word: Tech, Creator, Artist, Athlete, Business, Music, Science, etc.
-
-IMPORTANT: 
-- Be accurate - if unsure, make best guess based on context
-- Handle should be their actual Twitter/X username
-- If input is clearly a name/handle but not famous, format it nicely anyway
-
-Return JSON with: displayName, handle, category, isValid (true if confident match)`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            displayName: { type: Type.STRING },
-            handle: { type: Type.STRING },
-            category: { type: Type.STRING },
-            isValid: { type: Type.BOOLEAN }
-          },
-        },
-      },
+    // Use server-side API route to keep API key secure
+    const resp = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'normalize', query: input })
     });
 
-    const data = JSON.parse(response.text || '{}');
-
-    // Validation
-    if (!data.displayName || !data.handle) return null;
-
-    return {
-      displayName: data.displayName,
-      handle: data.handle.replace('@', '').trim(),
-      category: data.category || 'Creator'
-    };
-
+    if (resp.ok) {
+      const normalized = await resp.json();
+      if (normalized && normalized.displayName && normalized.handle) {
+        return {
+          displayName: normalized.displayName,
+          handle: normalized.handle,
+          category: normalized.category || 'Creator'
+        };
+      }
+    }
   } catch (error) {
-    console.error("Error normalizing person:", error);
-    // Fallback logic
-    return {
-      displayName: input,
-      handle: input.replace(/\s+/g, '').replace('@', ''),
-      category: 'Community'
-    };
+    // API unavailable - will use fallback
   }
+
+  // Fallback: Create person data from user input when API is unavailable
+  const cleanInput = input.trim();
+  const extractedHandle = cleanInput.startsWith('@') 
+    ? cleanInput.slice(1).trim()
+    : cleanInput.replace(/\s+/g, '').toLowerCase();
+  
+  const formattedName = cleanInput
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+    .replace('@', '');
+
+  return {
+    displayName: formattedName,
+    handle: extractedHandle,
+    category: 'Creator'
+  };
 };
 
 /**
@@ -74,38 +57,20 @@ export const getSuggestions = async (query: string): Promise<Suggestion[]> => {
   if (query.length < 2) return [];
 
   try {
-    const response = await ai.models.generateContent({
-      model: modelName,
-      contents: `You are helping users find people to vote for. Given the partial input "${query}", suggest 6 real people (famous, creators, entrepreneurs, artists, athletes, etc.) whose names or handles match.
-
-IMPORTANT:
-- Prioritize exact matches and close matches first
-- Include both very famous and moderately famous people
-- If the input looks like a handle (starts with @), match handles
-- Return diverse results (different fields/categories)
-- Ensure handles are real Twitter/X handles (no @ symbol in response)
-
-Return JSON array: [{name: "Full Name", handle: "twitterhandle"}]`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              name: { type: Type.STRING },
-              handle: { type: Type.STRING }
-            }
-          }
-        }
-      }
+    // Use server-side API route to keep API key secure
+    const resp = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'suggest', query })
     });
 
-    const suggestions = JSON.parse(response.text || '[]');
-    // Return up to 6 suggestions
-    return suggestions.slice(0, 6);
+    if (resp.ok) {
+      const results = await resp.json();
+      return Array.isArray(results) ? results : [];
+    }
   } catch (error) {
-    console.error("Error getting suggestions:", error);
-    return [];
+    // API unavailable - return empty suggestions
   }
+
+  return [];
 };
