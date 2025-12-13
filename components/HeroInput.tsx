@@ -216,7 +216,7 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto mb-12" ref={wrapperRef}>
+    <div className="w-full max-w-xl mx-auto mb-8 md:mb-12" ref={wrapperRef}>
 
       {/* Hidden Honeypot Field for Bots */}
       <input
@@ -247,19 +247,19 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
         </div>
       )}
 
-      <div className="text-center mb-8">
-        <h1 className="text-3xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-3 transition-all">
+      <div className="text-center mb-6 md:mb-8 px-4 md:px-0">
+        <h1 className="text-2xl md:text-3xl lg:text-5xl font-extrabold text-slate-900 tracking-tight mb-2 md:mb-3 transition-all">
           Who inspires you?
         </h1>
-        <p className="text-slate-500 text-sm md:text-base font-medium px-4">
+        <p className="text-slate-500 text-xs md:text-sm lg:text-base font-medium">
           Enter the name or X username of who inspires you.
         </p>
       </div>
 
       <div className="relative group z-30">
-        <div className="relative flex items-center bg-white rounded-2xl border-2 border-slate-100 shadow-xl shadow-slate-200/50 focus-within:border-slate-900 focus-within:ring-4 focus-within:ring-slate-100 transition-all duration-300 transform focus-within:-translate-y-1">
-          <div className="pl-4 text-slate-400">
-            <Search className="w-6 h-6" />
+        <div className="relative flex items-center bg-white rounded-2xl border-2 border-slate-100 shadow-xl shadow-slate-200/50 focus-within:border-slate-900 focus-within:ring-4 focus-within:ring-slate-100 transition-all duration-300 md:focus-within:-translate-y-1 overflow-hidden">
+          <div className="pl-3 md:pl-4 text-slate-400 flex-shrink-0">
+            <Search className="w-5 h-5 md:w-6 md:h-6" />
           </div>
           <input
             type="text"
@@ -267,18 +267,18 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
             placeholder={PLACEHOLDERS[placeholderIndex]}
-            className={`flex-1 p-4 text-lg text-slate-900 outline-none placeholder:text-slate-300 bg-transparent font-semibold transition-opacity duration-200 ${fadePlaceholder ? 'placeholder:opacity-0' : 'placeholder:opacity-100'}`}
+            className={`flex-1 p-3 md:p-4 text-base md:text-lg text-slate-900 outline-none placeholder:text-slate-300 bg-transparent font-semibold transition-opacity duration-200 min-w-0 ${fadePlaceholder ? 'placeholder:opacity-0' : 'placeholder:opacity-100'}`}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             disabled={isSubmitting}
           />
 
-          <div className="pr-2">
+          <div className="pr-2 md:pr-3 flex-shrink-0">
             <button
               onClick={() => handleSubmit()}
               disabled={isSubmitting || query.length < 2}
-              className={`px-6 py-3 rounded-xl text-sm font-bold text-white transition-all shadow-md ${isSubmitting || query.length < 2
+              className={`px-3 py-2 md:px-6 md:py-3 rounded-lg md:rounded-xl text-xs md:text-sm font-bold text-white transition-all shadow-md whitespace-nowrap ${isSubmitting || query.length < 2
                 ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none'
-                : 'bg-slate-900 hover:bg-slate-800 hover:scale-105 active:scale-95'
+                : 'bg-slate-900 hover:bg-slate-800 active:scale-95 md:hover:scale-105'
                 }`}
             >
               Vote

@@ -305,15 +305,15 @@ const App: React.FC = () => {
     const midTier = people.slice(3);
 
     return (
-        <div className="min-h-screen bg-slate-50 bg-grid-pattern text-slate-900 pb-20">
+        <div className="min-h-screen bg-slate-50 bg-grid-pattern text-slate-900 pb-20 overflow-x-hidden">
 
             {/* --- HEADER --- */}
-            <div className="fixed top-4 left-0 right-0 z-40 px-4">
-                <header className="max-w-4xl mx-auto bg-white/90 backdrop-blur-xl border border-white/50 shadow-lg shadow-slate-200/50 rounded-full px-4 h-16 flex items-center justify-between transition-all duration-300">
+            <div className="fixed top-2 md:top-4 left-0 right-0 z-40 px-2 md:px-4">
+                <header className="max-w-4xl mx-auto bg-white/90 backdrop-blur-xl border border-white/50 shadow-lg shadow-slate-200/50 rounded-full px-3 md:px-4 h-14 md:h-16 flex items-center justify-between transition-all duration-300">
                     {/* Logo Area */}
                     <div className="flex items-center gap-3">
-                        <div className="bg-slate-900 text-white p-2.5 rounded-full shadow-md">
-                            <Flame size={20} fill="white" />
+                        <div className="bg-slate-900 text-white p-2 md:p-2.5 rounded-full shadow-md">
+                            <Flame size={18} className="md:w-5 md:h-5" fill="white" />
                         </div>
                     </div>
 
@@ -322,10 +322,10 @@ const App: React.FC = () => {
                         {/* Search Trigger */}
                         <button
                             onClick={() => setIsSearchOpen(true)}
-                            className="p-2.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-colors"
+                            className="p-2 md:p-2.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-colors"
                             aria-label="Search Leaderboard"
                         >
-                            <Search size={20} />
+                            <Search size={18} className="md:w-5 md:h-5" />
                         </button>
 
                         {/* Attribution/Info */}
@@ -339,7 +339,7 @@ const App: React.FC = () => {
                                         handle="kachiMbaezue"
                                         name="Creator"
                                         size="sm"
-                                        className="border-2 border-white shadow-sm w-9 h-9"
+                                        className="border-2 border-white shadow-sm w-8 h-8 md:w-9 md:h-9"
                                     />
                                 </div>
                             </button>
@@ -372,7 +372,7 @@ const App: React.FC = () => {
                 </header>
             </div>
 
-            <main className="w-full max-w-4xl mx-auto pt-32 px-4">
+            <main className="w-full max-w-4xl mx-auto pt-24 md:pt-32 px-4 md:px-6">
 
                 <HeroInput onInspire={handleUserInspire} votedHandles={votedHandles} />
 
