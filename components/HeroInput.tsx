@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Loader2, ArrowRight } from 'lucide-react';
-import { getSuggestions, normalizePerson } from '../services/geminiService';
+// Use server API for AI suggestions/normalization (prevents exposing API keys in the browser)
 import { Suggestion, Person } from '../types';
 import Avatar from './Avatar';
 import ConfirmVoteModal from './ConfirmVoteModal';
@@ -55,8 +55,18 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
     const timer = setTimeout(async () => {
       if (query.length >= 2) {
         setIsTyping(true);
-        const results = await getSuggestions(query);
-        setSuggestions(results);
+        try {
+          const resp = await fetch('/api/gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'suggest', query })
+          });
+          const results = resp.ok ? await resp.json() : [];
+          setSuggestions(results);
+        } catch (err) {
+          console.error('Suggestion fetch failed', err);
+          setSuggestions([]);
+        }
         setIsTyping(false);
         setShowSuggestions(true);
       } else {
@@ -115,24 +125,25 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
     try {
       let personData;
 
-      if (manualHandle) {
-        const normalized = await normalizePerson(manualName || query);
-        if (normalized) {
-          personData = {
-            name: normalized.displayName,
-            handle: manualHandle,
-            category: normalized.category
-          };
+      try {
+        const resp = await fetch('/api/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'normalize', query: textToProcess, manualName })
+        });
+
+        if (resp.ok) {
+          const normalized = await resp.json();
+          if (normalized) {
+            personData = {
+              name: normalized.displayName,
+              handle: manualHandle || normalized.handle,
+              category: normalized.category
+            };
+          }
         }
-      } else {
-        const normalized = await normalizePerson(textToProcess);
-        if (normalized) {
-          personData = {
-            name: normalized.displayName,
-            handle: normalized.handle,
-            category: normalized.category
-          };
-        }
+      } catch (err) {
+        console.error('Normalization failed', err);
       }
 
       if (!personData) return;
