@@ -125,7 +125,7 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
         if (normalized && normalized.displayName && normalized.handle) {
           personData = {
             name: normalized.displayName,
-            handle: manualHandle || normalized.handle,
+            handle: (manualHandle || normalized.handle).replace(/^@/, ''),
             category: normalized.category
           };
         }
@@ -192,8 +192,10 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
   };
 
   const handleSuggestionClick = (s: Suggestion) => {
+    const cleanHandle = s.handle.startsWith('@') ? s.handle.slice(1) : s.handle;
     setQuery(s.name);
-    handleSubmit(s.name, s.handle, true); // Skip confirmation for suggestions
+    setShowSuggestions(false);
+    setPendingPerson({ name: s.name, handle: cleanHandle, category: 'Creator' });
   };
 
   return (
@@ -274,20 +276,23 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
               <span>Suggested</span>
               {isTyping && <Loader2 className="w-3 h-3 animate-spin" />}
             </div>
-            {suggestions.map((s, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSuggestionClick(s)}
-                className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center gap-3 transition-colors border-b border-slate-50 last:border-0 group"
-              >
-                <Avatar handle={s.handle} name={s.name} size="sm" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-slate-800 text-sm truncate">{s.name}</div>
-                  <div className="text-xs text-slate-500 truncate">@{s.handle}</div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors" />
-              </button>
-            ))}
+            {suggestions.map((s, idx) => {
+              const cleanHandle = s.handle.startsWith('@') ? s.handle.slice(1) : s.handle;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => handleSuggestionClick(s)}
+                  className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center gap-3 transition-colors border-b border-slate-50 last:border-0 group"
+                >
+                  <Avatar handle={cleanHandle} name={s.name} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-slate-800 text-sm truncate">{s.name}</div>
+                    <div className="text-xs text-slate-500 truncate">@{cleanHandle}</div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors" />
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

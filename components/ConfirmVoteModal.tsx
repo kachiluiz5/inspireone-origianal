@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import Avatar from './Avatar';
 
 interface ConfirmVoteModalProps {
@@ -63,15 +63,14 @@ const ConfirmVoteModal: React.FC<ConfirmVoteModalProps> = ({ person, onConfirm, 
                     <div className="flex gap-3">
                         <button
                             onClick={onCancel}
-                            className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors"
+                            className="flex-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold transition-colors"
                         >
                             Go Back
                         </button>
                         <button
                             onClick={onConfirm}
-                            className="flex-1 px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-lg flex items-center justify-center gap-2"
+                            className="flex-1 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold transition-colors"
                         >
-                            <CheckCircle size={18} />
                             Confirm Vote
                         </button>
                     </div>
