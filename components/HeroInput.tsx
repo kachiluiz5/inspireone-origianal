@@ -65,11 +65,11 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
             const results = await resp.json();
             setSuggestions(Array.isArray(results) ? results : []);
           } else {
-            // If API fails, just show no suggestions instead of breaking
+            // If API fails (404 in dev, 500 in prod), just show no suggestions
             setSuggestions([]);
           }
         } catch (err) {
-          // Silently fail - don't show suggestions if API is unavailable
+          // API unavailable (expected in dev mode) - no suggestions
           setSuggestions([]);
         }
         setIsTyping(false);
@@ -148,11 +148,34 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
           }
         }
       } catch (err) {
-        // Silently fail - will use fallback logic below
-        console.warn('Normalization API unavailable, using fallback');
+        // API unavailable (expected in dev mode) - use fallback
+        // Don't log errors for 404s in development
       }
 
-      if (!personData) return;
+      // Fallback: If API fails, create person data from user input
+      if (!personData) {
+        const cleanInput = textToProcess.trim();
+        // Extract handle if it starts with @
+        const extractedHandle = cleanInput.startsWith('@') 
+          ? cleanInput.slice(1).trim()
+          : cleanInput.replace(/\s+/g, '').toLowerCase();
+        
+        // Use manual handle if provided, otherwise use extracted handle
+        const finalHandle = manualHandle || extractedHandle;
+        
+        // Format name nicely (capitalize words)
+        const formattedName = cleanInput
+          .split(/\s+/)
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ')
+          .replace('@', '');
+
+        personData = {
+          name: formattedName,
+          handle: finalHandle,
+          category: 'Creator' // Default category
+        };
+      }
 
       // Show confirmation modal for direct input (not suggestions)
       if (!skipConfirmation && !manualHandle) {
