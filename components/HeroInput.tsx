@@ -61,10 +61,15 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'suggest', query })
           });
-          const results = resp.ok ? await resp.json() : [];
-          setSuggestions(results);
+          if (resp.ok) {
+            const results = await resp.json();
+            setSuggestions(Array.isArray(results) ? results : []);
+          } else {
+            // If API fails, just show no suggestions instead of breaking
+            setSuggestions([]);
+          }
         } catch (err) {
-          console.error('Suggestion fetch failed', err);
+          // Silently fail - don't show suggestions if API is unavailable
           setSuggestions([]);
         }
         setIsTyping(false);
@@ -134,7 +139,7 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
 
         if (resp.ok) {
           const normalized = await resp.json();
-          if (normalized) {
+          if (normalized && normalized.displayName && normalized.handle) {
             personData = {
               name: normalized.displayName,
               handle: manualHandle || normalized.handle,
@@ -143,7 +148,8 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
           }
         }
       } catch (err) {
-        console.error('Normalization failed', err);
+        // Silently fail - will use fallback logic below
+        console.warn('Normalization API unavailable, using fallback');
       }
 
       if (!personData) return;

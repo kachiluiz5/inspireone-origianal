@@ -618,15 +618,19 @@ const App: React.FC = () => {
                             ) : filteredPeople.length > 0 ? (
                                 <div className="space-y-3">
                                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Found {filteredPeople.length} results</p>
-                                    {filteredPeople.map((p, i) => (
-                                        <InspirationCard
-                                            key={p.id}
-                                            person={p}
-                                            rank={i + 1}
-                                            onShare={setSharePerson}
-                                            onVote={(person) => handleUserInspire({ name: person.name, handle: person.handle, category: person.category }, true)}
-                                        />
-                                    ))}
+                                    {filteredPeople.map((p) => {
+                                        // Find actual rank in leaderboard
+                                        const actualRank = people.findIndex(person => person.id === p.id) + 1;
+                                        return (
+                                            <InspirationCard
+                                                key={p.id}
+                                                person={p}
+                                                rank={actualRank}
+                                                onShare={setSharePerson}
+                                                onVote={(person) => handleUserInspire({ name: person.name, handle: person.handle, category: person.category }, true)}
+                                            />
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <div className="text-center pt-20">

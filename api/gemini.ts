@@ -13,9 +13,15 @@ const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (!ai) return res.status(500).json({ error: 'Server misconfiguration: missing API key' });
-
   const { action, query, manualName } = req.body || {};
+
+  // If API key is missing, return empty results instead of error
+  if (!ai) {
+    console.warn('Gemini API key not configured');
+    if (action === 'suggest') return res.json([]);
+    if (action === 'normalize') return res.json(null);
+    return res.status(500).json({ error: 'Server misconfiguration: missing API key' });
+  }
 
   try {
     if (action === 'suggest') {
