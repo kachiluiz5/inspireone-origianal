@@ -27,6 +27,8 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
   // Confirmation Modal State
   const [pendingPerson, setPendingPerson] = useState<{ name: string; handle: string; category: string } | null>(null);
 
+  const [error, setError] = useState<string | null>(null);
+
   // Bot Protection State
   const [honeypot, setHoneypot] = useState('');
   const [isRateLimited, setIsRateLimited] = useState(false);
@@ -73,6 +75,8 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
     if (!checkBotProtection()) {
       return;
     }
+    setError(null);
+
 
     const textToProcess = manualName || query;
     if (!textToProcess.trim()) return;
@@ -128,7 +132,8 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
       setIsSubmitting(true);
       await onInspire(personData, skipConfirmation); // Skip loading for suggestions
       setQuery('');
-    } catch (e) {
+    } catch (e: any) {
+      setError(e.message || "An unexpected error occurred.");
       console.error("Submission failed", e);
     } finally {
       setIsSubmitting(false);
@@ -144,7 +149,8 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
     try {
       await onInspire(pendingPerson, false); // Show loading for confirmed votes
       setQuery('');
-    } catch (e) {
+    } catch (e: any) {
+      setError(e.message || "An unexpected error occurred.");
       console.error("Vote failed", e);
     } finally {
       setIsSubmitting(false);
@@ -173,6 +179,13 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
           </div>
           <h3 className="text-2xl font-bold text-slate-900 mb-2">Searching the Universe...</h3>
           <p className="text-slate-500 font-medium">Finding {query}...</p>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-red-500 text-white px-6 py-3 rounded-full shadow-xl animate-in slide-in-from-top-4 font-bold text-sm">
+          {error}
         </div>
       )}
 

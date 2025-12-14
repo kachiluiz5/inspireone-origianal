@@ -53,9 +53,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const input = manualName || query || '';
       if (!input) return res.status(400).json({ error: 'Missing input' });
 
+      const CATEGORIES = ['Creator', 'Tech', 'Business', 'Art', 'Entertainment', 'Sports', 'Science', 'Gaming', 'Other'];
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: `You are helping identify a person from user input: "${input}"\n\nReturn JSON with: displayName, handle, category, isValid`,
+        contents: `Analyze the user input: "${input}" to identify a public figure.
+        Your goal is to extract their common display name and their primary social media handle (like for X/Twitter).
+        Most importantly, categorize them into ONE of the following genres based on their public persona and work: ${CATEGORIES.join(', ')}.
+        If the person doesn't fit any category, use "Other". If the input is ambiguous or doesn't refer to a real, known public person, set isValid to false.
+        Return JSON with: displayName, handle, category, isValid.`,
         config: {
           responseMimeType: 'application/json',
           responseSchema: {
@@ -63,7 +68,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             properties: {
               displayName: { type: Type.STRING },
               handle: { type: Type.STRING },
-              category: { type: Type.STRING },
+              category: {
+                type: Type.STRING,
+                enum: CATEGORIES
+              },
               isValid: { type: Type.BOOLEAN }
             }
           }
