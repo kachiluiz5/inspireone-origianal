@@ -1,4 +1,4 @@
-import { NormalizedPersonResponse, Suggestion } from '../types';
+import { NormalizedPersonResponse } from '../types';
 
 // This service now uses the server-side API route (/api/gemini) to keep API keys secure
 // The API key is NEVER exposed to the client-side code
@@ -47,30 +47,4 @@ export const normalizePerson = async (input: string): Promise<NormalizedPersonRe
     handle: extractedHandle,
     category: 'Creator'
   };
-};
-
-/**
- * Provides real-time autocomplete suggestions based on partial input.
- * Returns 6 suggestions for better accuracy.
- */
-export const getSuggestions = async (query: string): Promise<Suggestion[]> => {
-  if (query.length < 2) return [];
-
-  try {
-    // Use server-side API route to keep API key secure
-    const resp = await fetch('/api/gemini', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'suggest', query })
-    });
-
-    if (resp.ok) {
-      const results = await resp.json();
-      return Array.isArray(results) ? results : [];
-    }
-  } catch (error) {
-    // API unavailable - return empty suggestions
-  }
-
-  return [];
 };

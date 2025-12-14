@@ -7,11 +7,6 @@ export interface Person {
   lastTrend: 'up' | 'down' | 'neutral';
 }
 
-export interface Suggestion {
-  name: string;
-  handle: string;
-}
-
 export interface NormalizedPersonResponse {
   displayName: string;
   handle: string;

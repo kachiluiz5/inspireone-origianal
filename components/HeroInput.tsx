@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Loader2, ArrowRight } from 'lucide-react';
-import { Suggestion, Person } from '../types';
-import Avatar from './Avatar';
+import { Search, Loader2 } from 'lucide-react';
+import { Person } from '../types';
 import ConfirmVoteModal from './ConfirmVoteModal';
-import { normalizePerson, getSuggestions } from '../services/geminiService';
+import { normalizePerson } from '../services/geminiService';
 
 interface HeroInputProps {
   onInspire: (person: Omit<Person, 'id' | 'voteCount' | 'lastTrend'>, skipLoading?: boolean) => Promise<void>;
@@ -21,10 +20,7 @@ const PLACEHOLDERS = [
 
 const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
   const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [fadePlaceholder, setFadePlaceholder] = useState(false);
 
@@ -48,40 +44,6 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
     }, 3000); // Change every 3 seconds
 
     return () => clearInterval(interval);
-  }, []);
-
-  // Debounce logic for suggestions
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (query.length >= 2) {
-        setIsTyping(true);
-        try {
-          const results = await getSuggestions(query);
-          setSuggestions(Array.isArray(results) ? results : []);
-        } catch (err) {
-          // API unavailable - no suggestions
-          setSuggestions([]);
-        }
-        setIsTyping(false);
-        setShowSuggestions(true);
-      } else {
-        setSuggestions([]);
-        setShowSuggestions(false);
-      }
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [query]);
-
-  // Click outside to close suggestions
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const checkBotProtection = (): boolean => {
@@ -115,8 +77,6 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
     const textToProcess = manualName || query;
     if (!textToProcess.trim()) return;
 
-    setShowSuggestions(false);
-
     try {
       let personData;
 
@@ -137,13 +97,13 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
       if (!personData) {
         const cleanInput = textToProcess.trim();
         // Extract handle if it starts with @
-        const extractedHandle = cleanInput.startsWith('@') 
+        const extractedHandle = cleanInput.startsWith('@')
           ? cleanInput.slice(1).trim()
           : cleanInput.replace(/\s+/g, '').toLowerCase();
-        
+
         // Use manual handle if provided, otherwise use extracted handle
         const finalHandle = manualHandle || extractedHandle;
-        
+
         // Format name nicely (capitalize words)
         const formattedName = cleanInput
           .split(/\s+/)
@@ -189,13 +149,6 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleSuggestionClick = (s: Suggestion) => {
-    const cleanHandle = s.handle.startsWith('@') ? s.handle.slice(1) : s.handle;
-    setQuery(s.name);
-    setShowSuggestions(false);
-    setPendingPerson({ name: s.name, handle: cleanHandle, category: 'Creator' });
   };
 
   return (
@@ -248,7 +201,6 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
             placeholder={PLACEHOLDERS[placeholderIndex]}
             className={`flex-1 p-3 md:p-4 text-base md:text-lg text-slate-900 outline-none placeholder:text-slate-300 bg-transparent font-semibold transition-opacity duration-200 min-w-0 ${fadePlaceholder ? 'placeholder:opacity-0' : 'placeholder:opacity-100'}`}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
@@ -268,33 +220,6 @@ const HeroInput: React.FC<HeroInputProps> = ({ onInspire, votedHandles }) => {
             </button>
           </div>
         </div>
-
-        {/* Real-time AI Suggestions */}
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
-            <div className="bg-slate-50 px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center border-b border-slate-100">
-              <span>Suggested</span>
-              {isTyping && <Loader2 className="w-3 h-3 animate-spin" />}
-            </div>
-            {suggestions.map((s, idx) => {
-              const cleanHandle = s.handle.startsWith('@') ? s.handle.slice(1) : s.handle;
-              return (
-                <button
-                  key={idx}
-                  onClick={() => handleSuggestionClick(s)}
-                  className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center gap-3 transition-colors border-b border-slate-50 last:border-0 group"
-                >
-                  <Avatar handle={cleanHandle} name={s.name} size="sm" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-slate-800 text-sm truncate">{s.name}</div>
-                    <div className="text-xs text-slate-500 truncate">@{cleanHandle}</div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors" />
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* Confirmation Modal */}
