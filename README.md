@@ -1,6 +1,6 @@
 # InspireOne - Supabase Integration Setup Guide
 
-## 🚀 Quick Start
+##  Quick Start
 
 This application now uses **Supabase** as its production database. Follow these steps to get it running:
 
@@ -50,7 +50,7 @@ The app will be available at `http://localhost:3000`
 
 ---
 
-## 📊 Database Schema
+##  Database Schema
 
 The application uses two main tables:
 
@@ -82,7 +82,7 @@ Tracks trending metrics for analytics.
 
 ---
 
-## 🔧 Database Functions
+##  Database Functions
 
 ### `vote_for_person(p_handle, p_name, p_category)`
 
@@ -103,7 +103,7 @@ const { error } = await supabase.rpc('vote_for_person', {
 
 ---
 
-## 🔒 Security
+##  Security
 
 - **Row Level Security (RLS)** is enabled on all tables
 - Public read access is allowed for all users
@@ -113,7 +113,7 @@ const { error } = await supabase.rpc('vote_for_person', {
 
 ---
 
-## 🎨 Features
+##  Features
 
 - ✅ Real-time voting with optimistic UI updates
 - ✅ Skeleton loading states for smooth UX
@@ -125,7 +125,7 @@ const { error } = await supabase.rpc('vote_for_person', {
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### "Supabase configuration is incomplete"
 - Make sure `.env.local` exists and has valid credentials
@@ -143,7 +143,7 @@ const { error } = await supabase.rpc('vote_for_person', {
 
 ---
 
-## 📝 Development
+##  Development
 
 ### Project Structure
 ```
@@ -164,7 +164,7 @@ inspireone/
 
 ---
 
-## 🚢 Deployment
+##  Deployment
 
 When deploying to production (Vercel, Netlify, etc.):
 
@@ -174,6 +174,6 @@ When deploying to production (Vercel, Netlify, etc.):
 
 ---
 
-## 📄 License
+##  License
 
 MIT License - feel free to use this project however you'd like!
